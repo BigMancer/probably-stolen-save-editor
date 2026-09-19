@@ -1,0 +1,6 @@
+# 统一行尾处理：索引里存 LF，检出时按平台
+* text=auto
+*.html  text
+*.md    text
+*.es3   -text
+*.png   binary

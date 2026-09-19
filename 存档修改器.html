@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>深空当铺 · 存档修改器</title>
+<style>
+:root{
+  --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --fg:#e6e8ee; --dim:#98a0b0;
+  --line:#2a2f3a; --accent:#7fb2ff; --ok:#5ddc9a; --warn:#ffd166; --bad:#ff7b72; --chg:#3b3208;
+}
+@media (prefers-color-scheme: light){
+  :root{ --bg:#f6f7f9; --panel:#fff; --panel2:#f0f2f5; --fg:#1b1e24; --dim:#667; --line:#dde1e7;
+         --accent:#2563eb; --ok:#0a8f5b; --warn:#a06a00; --bad:#c0392b; --chg:#fff3bf; }
+}
+*{box-sizing:border-box}
+input{min-width:0}   /* flex item 下 input 的 min-width:auto 会按内容撑宽，导致表格列错位 */
+body{margin:0;background:var(--bg);color:var(--fg);
+  font:14px/1.5 "Segoe UI","Microsoft YaHei",system-ui,sans-serif}
+header{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1px solid var(--line);
+  padding:10px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.brand{font-weight:700;margin-right:6px}
+button,label.filebtn{background:var(--panel2);color:var(--fg);border:1px solid var(--line);
+  border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px}
+button:hover:not(:disabled),label.filebtn:hover{background:var(--line)}
+button:disabled{opacity:.4;cursor:default}
+button.primary{background:var(--accent);color:#fff;border-color:transparent;font-weight:600}
+label.filebtn{display:inline-block}
+#fileinfo{color:var(--dim);font-size:12.5px}
+nav.tabs{display:flex;gap:4px;padding:8px 14px 0;background:var(--panel);border-bottom:1px solid var(--line);
+  position:sticky;top:53px;z-index:19;flex-wrap:wrap}
+nav.tabs button{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:none}
+nav.tabs button.on{background:var(--bg);color:var(--accent);font-weight:600}
+main{padding:14px;max-width:1400px}
+section{display:none} section.on{display:block}
+#drop{display:flex;align-items:center;justify-content:center;height:300px;border:2px dashed var(--line);
+  border-radius:12px;color:var(--dim);font-size:15px;text-align:center;padding:20px}
+#drop.hot{border-color:var(--accent);color:var(--accent);background:rgba(127,178,255,.06)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:12px}
+.card h3{margin:2px 0 10px;font-size:14px;color:var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:6px 18px}
+.f{display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px dashed var(--line)}
+.f>label{flex:1;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help}
+.f input[type=text],.f input[type=number]{width:130px;background:var(--panel2);color:var(--fg);
+  border:1px solid var(--line);border-radius:5px;padding:3px 7px;font-size:13px;font-family:inherit}
+.f input.changed{background:var(--chg);border-color:var(--warn)}
+.f input.invalid{border-color:var(--bad)}
+.f .orig{font-size:11.5px;color:var(--warn);min-width:64px}
+.f .undo{color:var(--dim);cursor:pointer;font-size:13px;padding:0 2px}
+.f .undo:hover{color:var(--bad)}
+.bool{width:auto!important}
+.searchbar{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.searchbar input{flex:1;min-width:240px;background:var(--panel2);color:var(--fg);border:1px solid var(--line);
+  border-radius:6px;padding:7px 10px;font-size:13.5px;font-family:inherit}
+.tree{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 0;
+  max-height:calc(100vh - 200px);overflow:auto}
+.row{display:flex;align-items:center;gap:6px;padding:2px 8px;white-space:nowrap}
+.row:hover{background:var(--panel2)}
+.row .tw{width:14px;color:var(--dim);cursor:pointer;user-select:none;flex:none;text-align:center}
+.row .key{color:var(--accent);cursor:pointer}
+.row .key.idx{color:var(--dim)}
+.row .tag{font-size:11px;color:var(--dim);flex:none}
+.row .path{flex:1;color:var(--dim);font-size:12px;overflow:hidden;text-overflow:ellipsis;min-width:120px}
+.row input[type=text],.row input[type=number]{width:170px;background:var(--panel2);color:var(--fg);
+  border:1px solid var(--line);border-radius:5px;padding:2px 6px;font-size:12.5px;font-family:inherit;flex:none}
+.row input.changed{background:var(--chg);border-color:var(--warn)}
+.row input.invalid{border-color:var(--bad)}
+.row .orig{font-size:11.5px;color:var(--warn);flex:none}
+.row .undo{color:var(--dim);cursor:pointer;flex:none}
+.row .undo:hover{color:var(--bad)}
+.row.hit{background:rgba(127,178,255,.14)}
+#status{position:sticky;bottom:0;background:var(--panel);border-top:1px solid var(--line);
+  padding:7px 14px;font-size:12.5px;color:var(--dim)}
+#status b{color:var(--fg)}
+.chg-row{display:flex;gap:10px;align-items:center;padding:5px 0;border-bottom:1px dashed var(--line);flex-wrap:wrap}
+.chg-row .p{flex:1;min-width:200px;font-size:12.5px;color:var(--dim);font-family:Consolas,monospace}
+.chg-row .from{color:var(--bad);font-family:Consolas,monospace}
+.chg-row .to{color:var(--ok);font-family:Consolas,monospace}
+.hint{color:var(--dim);font-size:12.5px;line-height:1.7}
+kbd{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:0 5px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">🏪 深空当铺 · 存档修改器</span>
+  <label class="filebtn">选择存档<input id="file" type="file" accept=".es3,.json,.txt" hidden></label>
+  <button id="exportBtn" disabled>导出修改后的存档</button>
+  <button id="resetBtn" disabled>还原全部改动</button>
+  <button id="forgetBtn" title="清除浏览器里缓存的「上次存档」记录">忘记上次</button>
+  <span id="fileinfo">未加载存档</span>
+</header>
+
+<nav class="tabs">
+  <button data-tab="quick" class="on">常用数值</button>
+  <button data-tab="inv">🎒 库存</button>
+  <button data-tab="tree">全部字段</button>
+  <button data-tab="changes">改动清单 <span id="chgCount">0</span></button>
+</nav>
+
+<main>
+  <div id="drop">把 <b>&nbsp;.es3&nbsp;</b> 存档拖到这里，或点左上角「选择存档」<br><br>
+    <span class="hint">页面完全离线运行，存档不会上传到任何地方；导出后自行覆盖原文件（建议先备份）</span></div>
+
+  <section id="tab-quick" style="display:none"></section>
+
+  <section id="tab-inv">
+    <div class="searchbar">
+      <select id="invPick" style="background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-size:13.5px">
+        <option value="mainInvJSON">🎒 当前库存（mainInvJSON）</option>
+        <option value="soldInvJSON">📦 已售出库存（soldInvJSON）</option>
+      </select>
+      <select id="invGroup" style="background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-size:13.5px">
+        <option value="none">不分组</option>
+        <option value="type">按物品类型分组</option>
+        <option value="owner">按归属容器分组</option>
+        <option value="name">按物品名分组</option>
+        <option value="id">按 identifier 分组</option>
+      </select>
+      <button id="invCollapse" title="把所有分组收起来">全部收起</button>
+      <button id="invExpand" title="展开全部分组">全部展开</button>
+      <input id="invSearch" placeholder="按物品名 / identifier / 自定义名过滤；搜 MODULE 只看模组，搜 🏷 只看有自定义名的">
+      <button id="invClear">清空</button>
+      <span id="invInfo" class="hint"></span>
+    </div>
+    <div class="searchbar">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="invSync" checked>
+        批量同步：改选中项里任意一件的属性值时，同步到其余选中项
+      </label>
+      <span id="invSelInfo" class="hint">未选中物品</span>
+      <button id="invSelNone">清空选择</button>
+      <span class="hint">勾选行首复选框选中，组头有「选中本组」，表头复选框 = 全选当前显示</span>
+    </div>
+    <div id="invBox" class="tree" style="max-height:calc(100vh - 250px)"></div>
+  </section>
+
+  <section id="tab-tree">
+    <div class="searchbar">
+      <input id="search" placeholder="搜索字段名或值，例如：purity / itemId / 弹药 / evidence / 声望">
+      <button id="clearSearch">清空搜索</button>
+      <span id="searchinfo" class="hint"></span>
+    </div>
+    <div id="treebox" class="tree"></div>
+  </section>
+
+  <section id="tab-changes">
+    <div class="card"><h3>尚未修改任何字段</h3><div class="hint">在「常用数值」或「全部字段」里改值后，这里会列出全部改动。</div></div>
+  </section>
+</main>
+
+<div id="status">等待加载存档…</div>
+
+<script>
+/* =====================================================================
+   1. 宽容 JSON 解析器 —— 记录每个值的字符偏移，供导出时精确替换
+   支持本游戏存档的非标准写法：裸数字键(含负数)、非法转义如 \“、尾逗号
+   ===================================================================== */
+function parseLoose(text){
+  let i = 0; const n = text.length;
+  const stats = { numKeys:0, badEsc:0, nodes:0, bareKeys:0 };
+  function fail(m){ throw new Error(m + '（位置 ' + i + '）'); }
+  function ws(){ while(i<n && (text[i]===' '||text[i]==='\t'||text[i]==='\r'||text[i]==='\n')) i++; }
+  function str(){
+    const start = i; i++;
+    let v = '';
+    for(;;){
+      if(i>=n) fail('字符串未闭合');
+      const ch = text[i];
+      if(ch === '\\'){
+        const x = text[i+1];
+        if(x==='"'||x==='\\'||x==='/'){ v+=x; i+=2; }
+        else if(x==='n'){ v+='\n'; i+=2; }
+        else if(x==='r'){ v+='\r'; i+=2; }
+        else if(x==='t'){ v+='\t'; i+=2; }
+        else if(x==='b'){ v+='\b'; i+=2; }
+        else if(x==='f'){ v+='\f'; i+=2; }
+        else if(x==='u'){ v+=String.fromCharCode(parseInt(text.substr(i+2,4),16)||32); i+=6; }
+        else { v += (x===undefined?'':x); stats.badEsc++; i += 2; }   // \“ \” 之类：宽容
+      } else if(ch === '"'){ i++; break; }
+      else { v += ch; i++; }
+    }
+    stats.nodes++;
+    return {t:'str', start, end:i, v};
+  }
+  function num(){
+    const start = i;
+    const m = /^-?\d+(\.\d+)?([eE][+-]?\d+)?/.exec(text.slice(i, i+40));
+    if(!m) fail('非法数字');
+    i += m[0].length; stats.nodes++;
+    return {t:'num', start, end:i, v:parseFloat(m[0])};
+  }
+  function obj(){
+    const start = i; i++;
+    const children = [];
+    ws();
+    if(text[i] === '}'){ i++; stats.nodes++; return {t:'obj', start, end:i, children}; }
+    for(;;){
+      ws();
+      let key, keyStart;
+      if(text[i] === '"'){ keyStart = i; key = str().v; }
+      else {
+        const m = /^-?\d+/.exec(text.slice(i, i+30)) || /^[A-Za-z_$][\w$]*/.exec(text.slice(i, i+80));
+        if(!m) fail('非法键名');
+        keyStart = i; i += m[0].length;
+        key = m[0];
+        if(/^-?\d+$/.test(m[0])) stats.numKeys++; else stats.bareKeys++;
+      }
+      ws();
+      if(text[i] !== ':') fail('缺少冒号');
+      i++;
+      const v = val();
+      children.push({key, keyStart, v});
+      ws();
+      if(text[i] === ','){ i++; ws(); if(text[i] === '}'){ i++; break; } continue; }
+      if(text[i] === '}'){ i++; break; }
+      fail('缺少 , 或 }');
+    }
+    stats.nodes++;
+    return {t:'obj', start, end:i, children};
+  }
+  function arr(){
+    const start = i; i++;
+    const children = [];
+    ws();
+    if(text[i] === ']'){ i++; stats.nodes++; return {t:'arr', start, end:i, children}; }
+    for(;;){
+      children.push(val());
+      ws();
+      if(text[i] === ','){ i++; ws(); if(text[i] === ']'){ i++; break; } continue; }
+      if(text[i] === ']'){ i++; break; }
+      fail('缺少 , 或 ]');
+    }
+    stats.nodes++;
+    return {t:'arr', start, end:i, children};
+  }
+  function val(){
+    ws();
+    const c = text[i];
+    if(c === '{') return obj();
+    if(c === '[') return arr();
+    if(c === '"') return str();
+    const rest = text.slice(i, i+5);
+    for(const lit of ['true','false','null']){
+      if(rest.startsWith(lit)){
+        const start = i; i += lit.length; stats.nodes++;
+        return {t: lit==='null' ? 'null' : 'bool', start, end:i, v: lit==='true' ? true : (lit==='false' ? false : null)};
+      }
+    }
+    return num();
+  }
+  const root = val();
+  ws();
+  return {root, stats, text, tail:text.slice(i)};
+}
+
+/* 给每个节点补上路径段 segs（'value' 段在显示时会被隐藏） */
+function annotate(node, segs){
+  node.segs = segs;
+  if(node.t === 'obj') node.children.forEach(c => annotate(c.v, segs.concat([c.key])));
+  else if(node.t === 'arr') node.children.forEach((c, k) => annotate(c, segs.concat([k])));
+  return node;
+}
+function friendlyPath(segs){
+  let s = '';
+  for(const g of segs){
+    if(g === 'value') continue;
+    if(typeof g === 'number') s += '[' + g + ']';
+    else s += (s ? '.' : '') + g;
+  }
+  return s;
+}
+/* 按友好路径取节点：playerStore.playerCash / storeReputations[0].amount */
+function lookup(root, path){
+  const parts = [];
+  String(path).split('.').forEach(s => {
+    const m = /^([^\[]*)((?:\s*\[\s*\d+\s*\])*)$/.exec(s);
+    if(!m) return;
+    if(m[1]) parts.push(m[1]);
+    (m[2].match(/\[\s*\d+\s*\]/g) || []).forEach(t => parts.push(parseInt(t.replace(/\D/g,''), 10)));
+  });
+  let cur = root;
+  for(const p of parts){
+    if(!cur) return null;
+    if(typeof p === 'number'){
+      if(cur.t !== 'arr' || p >= cur.children.length) return null;
+      cur = cur.children[p];
+    } else {
+      const find = o => (o && o.t === 'obj') ? o.children.find(x => x.key === p) : null;
+      let hit = find(cur);
+      if(!hit && cur.t === 'obj'){       // Unity 包装层 {"__type":..,"value":{...}}
+        const w = cur.children.find(x => x.key === 'value');
+        if(w && w.v && w.v.t === 'obj') hit = w.v.children.find(x => x.key === p) || null;
+      }
+      if(!hit) return null;
+      cur = hit.v;
+    }
+  }
+  return cur;
+}
+
+/* =====================================================================
+   2. 导出：只替换改动过的字符区间，其余字节原样保留
+   ===================================================================== */
+function encStr(s){
+  let o = '"';
+  for(const ch of String(s)){
+    const c = ch.codePointAt(0);
+    if(ch === '"') o += '\\"';
+    else if(ch === '\\') o += '\\\\';
+    else if(ch === '\n') o += '\\n';
+    else if(ch === '\r') o += '\\r';
+    else if(ch === '\t') o += '\\t';
+    else if(c < 0x20) o += '\\u' + c.toString(16).padStart(4,'0');
+    else o += ch;
+  }
+  return o + '"';
+}
+const NUMRE = /^-?\d+(\.\d+)?([eE][+-]?\d+)?$/;
+const isNumOk = s => NUMRE.test(String(s).trim());
+function encVal(node, v){
+  if(node.t === 'num') return String(v);
+  if(node.t === 'bool') return v ? 'true' : 'false';
+  return encStr(v);
+}
+function buildOutput(text, changes){
+  const items = [...changes.values()].sort((a,b) => b.node.start - a.node.start);
+  let out = text;
+  for(const it of items){
+    const rep = it.literal !== undefined ? it.literal : encVal(it.node, it.value);
+    out = out.slice(0, it.node.start) + rep + out.slice(it.node.end);
+  }
+  return out;
+}
+/* 转义感知的局部改写：literal 是含引号的原始字面量，edits 是「解码后文本」坐标上的改动
+   只重写改动区间，其余字符（包括原文件里的 \/ \“ 等转义写法）逐字保留 */
+function patchLiteral(literal, edits){
+  if(!edits || !edits.length) return literal;
+  const sorted = [...edits].sort((a,b) => a.start - b.start);
+  const end = literal.length - 1;      // 尾引号位置
+  let li = 1, di = 0, last = 1, out = '';
+  const step = () => {                 // 前进一个字面量转义单元
+    if(literal[li] === '\\') li += (literal[li+1] === 'u' ? 6 : 2); else li += 1;
+    di += 1;
+  };
+  for(const e of sorted){
+    while(di < e.start && li < end) step();
+    const p0 = li;
+    while(di < e.end && li < end) step();
+    const p1 = li;
+    if(p0 < last) continue;            // 重叠/越界，跳过
+    out += literal.slice(last, p0) + e.raw;
+    last = p1;
+  }
+  return literal.slice(0, 1) + out + literal.slice(last);
+}
+/* 导出后自检：重新解析导出文本，按路径逐项比对 */
+function verifyOutput(outText, changes){
+  const r = parseLoose(outText);
+  annotate(r.root, []);
+  const bad = [];
+  for(const it of changes.values()){
+    const node = lookupBySegs(r.root, it.node.segs);
+    const want = it.node.t === 'num' ? Number(it.value) : it.value;
+    if(!node){ bad.push(friendlyPath(it.node.segs) + '（未找到）'); continue; }
+    const got = node.t === 'num' ? Number(node.v) : node.v;
+    if(got !== want) bad.push(friendlyPath(it.node.segs) + '（读回 ' + node.v + '）');
+  }
+  return {ok: changes.size - bad.length, bad, nodes:r.stats.nodes};
+}
+function lookupBySegs(root, segs){
+  let cur = root, i = 0;
+  // 若 segs 带 root 自身的路径前缀（库存内层树），跳过它
+  if(root.segs && root.segs.length && segs.length && root.segs[0] === segs[0]) i = 1;
+  for(; i < segs.length; i++){
+    const p = segs[i];
+    if(!cur) return null;
+    if(typeof p === 'number'){ if(cur.t !== 'arr' || !cur.children[p]) return null; cur = cur.children[p]; }
+    else { if(cur.t !== 'obj') return null; const h = cur.children.find(x => x.key === p); if(!h) return null; cur = h.v; }
+  }
+  return cur;
+}
+
+/* =====================================================================
+   3. 状态与 UI
+   ===================================================================== */
+const S = { text:null, hasBOM:false, root:null, stats:null, changes:new Map(), name:'', inputs:new Map(), invs:new Map(), subs:new Map(), subByLabel:new Map(), sel:new Set(), rowByNode:new Map() };
+const $ = id => document.getElementById(id);
+const el = (tag, cls, txt) => { const e = document.createElement(tag); if(cls) e.className = cls; if(txt != null) e.textContent = txt; return e; };
+
+function setStatus(html){ $('status').innerHTML = html; }
+
+function load(text, name, hasBOM, size){
+  const p = parseLoose(text);
+  annotate(p.root, []);
+  S.text = text; S.hasBOM = hasBOM; S.root = p.root; S.stats = p.stats; S.name = name; S.byteSize = size;
+  S.changes.clear(); S.inputs.clear(); S.invs.clear(); S.subs.clear(); S.subByLabel.clear(); S.sel.clear(); S.rowByNode = new Map();
+  $('fileinfo').textContent = `${name} · ${(size/1024/1024).toFixed(2)} MB · ${p.stats.nodes} 个字段`;
+  treeRendered = false; $('treebox').innerHTML = '';
+  $('search').value = ''; $('searchinfo').textContent = '';
+  $('invBox').innerHTML = ''; $('invInfo').textContent = '';
+  $('invSearch').value = ''; $('invPick').value = 'mainInvJSON';
+  $('drop').style.display = 'none';
+  renderQuick(); renderTree();
+  updateChgUI();
+  const notes = [];
+  if(p.stats.numKeys) notes.push(`宽容修正 ${p.stats.numKeys} 处未加引号的数字键`);
+  if(p.stats.bareKeys) notes.push(`${p.stats.bareKeys} 处无引号键`);
+  if(p.stats.badEsc) notes.push(`${p.stats.badEsc} 处非标准转义`);
+  setStatus(`已加载 <b>${name}</b>　解析成功，${p.stats.nodes} 个字段` +
+            (notes.length ? `（原存档格式问题：${notes.join('，')}，导出时未改动处按原样保留）` : '') +
+            (p.tail.trim() ? '　⚠ 文件尾部有解析器未覆盖的内容，请反馈' : ''));
+  switchTab('quick');
+}
+
+/* ---- 值控件 ---- */
+/* 内嵌 JSON：值本身是 JSON 文本的字符串字段（如 mainInvJSON / soldInvJSON）
+   懒解析成可展开、可编辑、可搜索的子结构，改动经「转义感知」局部写回 */
+function isJsonStr(n){
+  return !!(n && n.t === 'str' && n.v.length > 2 && (n.v[0] === '{' || n.v[0] === '['));
+}
+function ensureSub(node){
+  if(!isJsonStr(node)) return null;
+  if(node.sub) return node.sub;
+  let p;
+  try { p = parseLoose(node.v); } catch(e){ return null; }
+  if(p.root.t !== 'obj' && p.root.t !== 'arr') return null;
+  if(p.tail.trim()) return null;
+  const label = (friendlyPath(node.segs) || '内嵌JSON') + ' ▸内嵌JSON';
+  annotate(p.root, [label]);
+  const sub = {
+    node, label, text: node.v, root: p.root, changes: new Map(), stats: p.stats,
+    literal: (S.text || '').slice(node.start, node.end),
+    owner: friendlyPath(node.segs),
+  };
+  node.sub = sub;
+  S.subs.set(node, sub);
+  S.subByLabel.set(label, sub.changes);
+  return sub;
+}
+function subsOf(root){
+  const out = [];
+  (function walk(n){
+    if(isJsonStr(n)){ const s = ensureSub(n); if(s){ out.push(s); walk(s.root); } }
+    if(n.t === 'obj') n.children.forEach(c => walk(c.v));
+    else if(n.t === 'arr') n.children.forEach(walk);
+  })(root);
+  return out;
+}
+/* 一个节点该写进哪个改动表：内嵌 JSON 内的节点写回它所属的内层表 */
+function mapOf(node){
+  return (node.segs && S.subByLabel.get(node.segs[0])) || S.changes;
+}
+function makeInput(node, opts){
+  opts = opts || {};
+  node._map = opts.map || mapOf(node);
+  let inp;
+  if(node.t === 'bool'){
+    inp = el('input'); inp.type = 'checkbox'; inp.className = 'bool'; inp.checked = !!node.v;
+    inp.addEventListener('change', () => commit(node, inp.checked, inp));
+  } else if(node.t === 'str'){
+    if(isJsonStr(node)) return el('span','tag','内嵌 JSON（展开或到库存页查看）');
+    inp = el('input'); inp.type = 'text'; inp.value = node.v;
+    if(opts.wide) inp.style.width = '340px';
+    inp.addEventListener('change', () => commit(node, inp.value, inp));
+    inp.addEventListener('keydown', e => { if(e.key === 'Enter') inp.blur(); });
+  } else if(node.t === 'num'){
+    inp = el('input'); inp.type = 'number'; inp.step = 'any'; inp.value = node.v;
+    inp.addEventListener('change', () => commit(node, inp.value, inp));
+    inp.addEventListener('keydown', e => { if(e.key === 'Enter') inp.blur(); });
+  } else {
+    return el('span', 'hint', node.t === 'obj' ? '{…}' : '[…]');
+  }
+  if(!S.inputs.has(node)) S.inputs.set(node, []);
+  S.inputs.get(node).push(inp);
+  node._val = node.v;
+  return inp;
+}
+function commit(node, val, inp){
+  const map = node._map || S.changes;
+  const isNum = node.t === 'num';
+  if(node.t === 'bool' && typeof val !== 'boolean'){
+    setStatus('⚠ 布尔字段只接受 true / false，已忽略这次输入');
+    return;
+  }
+  if(isNum && !isNumOk(val)){
+    if(inp) inp.classList.add('invalid');
+    setStatus('⚠ 数字格式不合法，已忽略这次输入');
+    return;
+  }
+  if(inp) inp.classList.remove('invalid');
+  const orig = node.v;
+  const same = isNum ? Number(val) === Number(orig) : val === orig;
+  if(same) map.delete(node); else map.set(node, {node, value: isNum ? String(val).trim() : val});
+  refreshControls(node);
+  updateChgUI();
+}
+function refreshControls(node){
+  const map = node._map || S.changes;
+  const orig = node.v;
+  for(const inp of (S.inputs.get(node) || [])){
+    const ch = map.get(node);
+    inp.classList.toggle('changed', !!ch);
+    if(node.t === 'bool') inp.checked = ch ? !!ch.value : !!orig;
+    else if(document.activeElement !== inp) inp.value = ch ? ch.value : orig;
+    const box = inp.closest('.f') || inp.closest('.row') || inp.closest('.inv-row');
+    if(box){
+      let o = box.querySelector('.orig');
+      if(ch){
+        if(!o){ o = el('span','orig'); box.insertBefore(o, inp); }
+        o.textContent = '原 ' + (node.t === 'bool' ? (orig ? '是' : '否') : String(orig).slice(0,20));
+      } else if(o) o.remove();
+    }
+  }
+  if(node._badges) for(const b of node._badges){
+    const ch = map.get(node);
+    b.textContent = ' 🏷 ' + (ch ? ch.value : node.v);
+  }
+  if(node._badgeUpdaters) for(const f of node._badgeUpdaters) f();
+  updateChgUI();
+  if($('tab-inv').style.display === 'block') updateInvInfo();
+}
+function totalChanges(){
+  let n = S.changes.size;
+  for(const s of S.subs.values()) n += s.changes.size;
+  return n;
+}
+function updateChgUI(){
+  const n = totalChanges();
+  $('chgCount').textContent = n;
+  $('exportBtn').disabled = !n;
+  $('resetBtn').disabled = !n;
+  schedulePersist();                                   // 改动后把进度写进 IndexedDB（防抖 1.2s）
+  if($('tab-changes').style.display === 'block') renderChanges();
+}
+function undo(node){
+  const map = node._map || S.changes;
+  map.delete(node);
+  refreshControls(node);
+  updateChgUI();
+}
+
+/* ---- 常用数值面板 ---- */
+const QUICK = [
+  ['💵 基础与财务', [
+    ['playerStore.playerCash','现金'],
+    ['playerStore.wildFavor','荒野声望'],
+    ['storeStation.dayCounter','当前天数'],
+    ['playerStore.runNumber','周目数'],
+    ['playerStore.dayUntilRent','距收租(天)'],
+    ['playerStore.rentValue','租金'],
+    ['playerStore.temporaryRent','临时租金'],
+    ['playerStore.startingRent','起始租金'],
+    ['playerStore.dayUntilLoan','距还贷(天)'],
+    ['playerStore.loanValue','贷款额'],
+    ['playerStore.foreclosePercentage','强制收店进度%'],
+  ]],
+  ['🏪 店铺经营', [
+    ['storeStation.order','秩序'],
+    ['storeStation.traffic','客流'],
+    ['storeStation.happiness','幸福度'],
+    ['storeStation.todayGutterflowPurity','沟流水纯度'],
+    ['storeStation.todayRustwaterPurity','锈水纯度'],
+    ['playerStore.baseStoreAttractiveness','基础吸引力'],
+    ['playerStore.projectorAttractivenessBonus','投影吸引力加成'],
+    ['playerStore.dealMakerBargainBonus','谈价加成'],
+    ['playerStore.garbageLevel','垃圾等级'],
+    ['playerStore.isPowerOn','店铺通电'],
+    ['playerStore.machineryBoughtCount','已购机器数'],
+    ['playerStore.retailMarkup','零售加价%'],
+    ['playerStore.contrabandMarkupLow','违禁加价·低'],
+    ['playerStore.contrabandMarkupMid','违禁加价·中'],
+    ['playerStore.contrabandMarkupHigh','违禁加价·高'],
+    ['playerStore.contrabandMarkupCritial','违禁加价·极高'],
+  ]],
+  ['⚖️ 势力与治安', [
+    ['storeStation.storeOperationManager.lowerLevelUnrest','下层区动荡'],
+    ['storeStation.storeOperationManager.upperLevelFriendliness','上层区友好度'],
+    ['storeStation.storeOperationManager.revPower','革命势力'],
+    ['storeStation.storeOperationManager.secPower','安保势力'],
+    ['storeStation.storeOperationManager.blackMarketPower','黑市势力'],
+    ['playerStore.secData.evidenceLevel','证据等级'],
+    ['playerStore.secData.bribeTracker','贿赂计数'],
+    ['playerStore.secData.endangermentItemTracker','危害品计数'],
+    ['playerStore.wrongfulReportCount','诬告次数'],
+    ['playerStore.contrabandFinePercentage','违禁罚款%'],
+  ]],
+  ['❤️ 健康与状态', [
+    ['playerStore.healthData.woundState','伤势状态'],
+    ['playerStore.healthData.isWoundStable','伤势稳定'],
+    ['playerStore.healthData.isWoundedFresh','新伤(未处理)'],
+    ['playerStore.healthData.sentinelPool','哨兵药剂池'],
+    ['playerStore.healthData.luck','幸运'],
+    ['playerStore.healthData.daysSinceNicotineConsumption','距尼古丁(天)'],
+    ['playerStore.healthData.daysSinceAlcoholConsumption','距酒精(天)'],
+    ['playerStore.healthData.daysSinceNarcoticConsumption','距麻醉品(天)'],
+    ['playerStore.healthData.daysSinceSentinelInjection','距哨兵注射(天)'],
+  ]],
+  ['👥 客户与检查', [
+    ['playerStore.storeClientManager.dayUntilInspection','距检查(天)'],
+    ['playerStore.storeClientManager.daySinceInspection','上次检查后(天)'],
+    ['playerStore.storeClientManager.daySinceWantedWasQueued','距通缉排队(天)'],
+    ['playerStore.storeClientManager.daySinceInformationClient','距情报客户(天)'],
+    ['playerStore.storeClientManager.isTodayWantedQueued','今日已排通缉'],
+  ]],
+  ['🕐 时间', [
+    ['playerStore.runPlayTimeSeconds','本周目游玩(秒)'],
+    ['playerStore.totalPlayTimeSeconds','总游玩(秒)'],
+    ['playerStore.dayWithoutInsurance','无保险天数'],
+    ['playerStore.lastTheftDay','最近被偷(天)'],
+    ['playerStore.lastInspectionLossDay','最近检查损失(天)'],
+  ]],
+];
+function fieldRow(path, label){
+  const node = lookup(S.root, path);
+  const f = el('div','f');
+  const lb = el('label', null, label); lb.title = path;
+  f.appendChild(lb);
+  if(!node){
+    f.appendChild(el('span','hint','（此存档没有该字段）'));
+    return f;
+  }
+  f.appendChild(makeInput(node));
+  const u = el('span','undo','⟲'); u.title = '撤销这项改动';
+  u.onclick = () => undo(node);
+  f.appendChild(u);
+  refreshControls(node);
+  return f;
+}
+function renderQuick(){
+  const box = $('tab-quick'); box.innerHTML = '';
+  for(const [title, items] of QUICK){
+    const card = el('div','card');
+    card.appendChild(el('h3', null, title));
+    const g = el('div','grid');
+    for(const [p, l] of items) g.appendChild(fieldRow(p, l));
+    card.appendChild(g); box.appendChild(card);
+  }
+  // 派系声望（存档里动态生成）
+  const reps = lookup(S.root, 'playerStore.storeReputations');
+  if(reps && reps.t === 'arr'){
+    const card = el('div','card'); card.appendChild(el('h3', null, '🎖️ 派系声望'));
+    const g = el('div','grid');
+    reps.children.forEach((r, idx) => {
+      let name = '派系 ' + idx;
+      if(r.t === 'obj'){
+        const d = r.children.find(x => x.key === 'factionDisplay');
+        if(d && d.v.t === 'str') name = d.v.v;
+      }
+      g.appendChild(fieldRow('playerStore.storeReputations[' + idx + '].amount', name + ' 声望'));
+    });
+    card.appendChild(g); box.appendChild(card);
+  }
+}
+
+/* ---- 全字段树 ---- */
+let treeRendered = false;
+function renderTree(){
+  const box = $('treebox');
+  if(treeRendered) return;
+  box.innerHTML = '';
+  box.appendChild(treeNode(S.root, '存档根', 0));
+  treeRendered = true;
+}
+function treeNode(node, label, depth){
+  const wrap = el('div');
+  const row = el('div','row');
+  row.style.paddingLeft = (8 + depth * 16) + 'px';
+  const sub = isJsonStr(node) ? ensureSub(node) : null;
+  const isBox = node.t === 'obj' || node.t === 'arr' || !!sub;
+  const tw = el('span','tw', isBox ? '▸' : '');
+  row.appendChild(tw);
+  const kn = el('span', typeof label === 'number' ? 'key idx' : 'key', String(label));
+  row.appendChild(kn);
+  const kids = el('div'); kids.style.display = 'none';
+  if(isBox){
+    const n = sub ? sub.root : node;
+    row.appendChild(el('span','tag', sub
+      ? '内嵌 JSON · ' + (n.t === 'arr' ? n.children.length + ' 项' : n.children.length + ' 个键') +
+        '（原文 ' + Math.round(sub.text.length / 1024) + ' KB）'
+      : (node.t === 'obj' ? '{' + node.children.length + '}' : '[' + node.children.length + ']')));
+    if(node.t === 'obj' && !sub){
+      const idn = node.children.find(x => x.key === '<identifier>k__BackingField');
+      if(idn && idn.v.t === 'str' && idn.v.v === 'CUSTOM_NAME_TAG'){
+        const b = el('span','tag','🏷 自定义名'); b.style.color = 'var(--warn)';
+        row.appendChild(b);
+      }
+    }
+    if(sub && /^(mainInvJSON|soldInvJSON)$/.test(String(node.segs[node.segs.length-1]))){
+      const go = el('button', null, '🎒 库存页');
+      go.style.cssText = 'font-size:11px;padding:1px 6px';
+      go.onclick = e => { e.stopPropagation(); $('invPick').value = node.segs[node.segs.length-1]; switchTab('inv'); renderInv(); };
+      row.appendChild(go);
+    }
+    let built = false;
+    const toggle = () => {
+      if(!built){
+        const box = sub ? sub.root : node;
+        if(box.t === 'obj') box.children.forEach(c => kids.appendChild(treeNode(c.v, c.key, depth + 1)));
+        else box.children.forEach((c, k) => kids.appendChild(treeNode(c, k, depth + 1)));
+        built = true;
+      }
+      const open = kids.style.display === 'none';
+      kids.style.display = open ? 'block' : 'none';
+      tw.textContent = open ? '▾' : '▸';
+    };
+    tw.onclick = toggle; kn.onclick = toggle;
+    wrap.dataset.toggle = '1';
+    wrap._toggle = toggle;
+  } else {
+    row.appendChild(makeInput(node));
+    const cn = node.t === 'str' ? tagCn(node.v) : '';
+    if(cn){
+      const b = el('span','tag','· ' + cn); b.style.color = 'var(--warn)';
+      row.appendChild(b);
+    }
+    const u = el('span','undo','⟲'); u.onclick = () => undo(node); row.appendChild(u);
+    if(node.t === 'str' && node.v.length > 20 && /[\u4e00-\u9fa5]/.test(node.v)){
+      kn.title = friendlyPath(node.segs);
+    }
+  }
+  wrap.appendChild(row); wrap.appendChild(kids);
+  return wrap;
+}
+/* 搜索：扁平结果列表，可直接改（含内嵌 JSON 内部字段） */
+function searchRelPath(node){        // 用于匹配：内嵌 JSON 内只比相对路径
+  const segs = node.segs || [];
+  const lab = segs[0];
+  return (lab && S.subByLabel.has(lab)) ? friendlyPath(segs.slice(1)) : friendlyPath(segs);
+}
+function searchPath(node){           // 用于显示：带上所属字段名
+  const segs = node.segs || [];
+  const lab = segs[0];
+  if(lab && S.subByLabel.has(lab)){
+    return String(lab).replace(/ ▸内嵌JSON$/, '') + ' ▸ ' + friendlyPath(segs.slice(1));
+  }
+  return friendlyPath(segs);
+}
+function doSearch(q){
+  const box = $('treebox'), info = $('searchinfo');
+  box.innerHTML = '';
+  if(!q.trim()){ info.textContent = ''; treeRendered = false; renderTree(); return; }
+  const low = q.toLowerCase(); const hits = [];
+  (function walk(node){
+    if(!node || hits.length >= 400) return;
+    if(node.segs){
+      const name = node.segs.length ? String(node.segs[node.segs.length - 1]) : '';
+      const p = searchRelPath(node);
+      if((name && name.toLowerCase().includes(low)) || p.toLowerCase().includes(low)) hits.push(node);
+      else if(!isJsonStr(node) && (node.t === 'str' || node.t === 'num') && String(node.v).toLowerCase().includes(low)) hits.push(node);
+    }
+    if(isJsonStr(node)){ const s = ensureSub(node); if(s) walk(s.root); }
+    if(node.t === 'obj') node.children.forEach(c => walk(c.v));
+    else if(node.t === 'arr') node.children.forEach(walk);
+  })(S.root);
+  info.textContent = hits.length ? `匹配 ${hits.length} 个字段${hits.length >= 400 ? '（已截断，请细化关键词）' : ''}`
+                                 : '没有匹配的字段';
+  if(!hits.length) return;
+  const list = el('div','tree');
+  for(const node of hits){
+    const row = el('div','row');
+    const p = el('span','path', searchPath(node)); p.title = '点击复制路径';
+    p.onclick = () => { navigator.clipboard && navigator.clipboard.writeText(friendlyPath(node.segs)); };
+    row.appendChild(p);
+    if(isJsonStr(node)){
+      const s = ensureSub(node);
+      row.appendChild(el('span','tag', s ? '内嵌 JSON · ' + s.root.children.length + (s.root.t === 'arr' ? ' 项' : ' 个键') : '字符串'));
+    } else if(node.t === 'obj'){ row.appendChild(el('span','tag','{…}')); }
+    else if(node.t === 'arr'){ row.appendChild(el('span','tag','[… ' + node.children.length + ' 项]')); }
+    else {
+      row.insertBefore(makeInput(node), p);
+      const u = el('span','undo','⟲'); u.onclick = () => undo(node); row.appendChild(u);
+      refreshControls(node);
+    }
+    list.appendChild(row);
+  }
+  box.appendChild(list);
+}
+/* ---- 🎒 库存编辑器（mainInvJSON / soldInvJSON 里的内嵌 JSON） ---- */
+const invChild = (n, k) => (n && n.t === 'obj') ? (n.children.find(x => x.key === k) || {}).v : undefined;
+const invStr = (n, k) => { const c = invChild(n, k); return c && c.t === 'str' ? c.v : ''; };
+const invArr = (n, k) => { const c = invChild(n, k); return c && c.t === 'arr' ? c.children : []; };
+function loadInv(field, force){
+  const outer = lookup(S.root, 'playerStore.' + field);
+  const sub = outer ? ensureSub(outer) : null;
+  if(!sub){ S.invs.set(field, null); return null; }
+  const cur = S.invs.get(field);
+  if(cur && cur.sub === sub && !force) return cur;
+  const ctx = { field, outer, sub, text: sub.text, root: sub.root, changes: sub.changes, shown: [] };
+  S.invs.set(field, ctx);
+  return ctx;
+}
+/* =====================================================================
+   4. Tag 中文对照表（_keys / _values / itemTypes 里的英文标签）
+   ===================================================================== */
+const TAG_CN = {
+  /* 通用 */
+  'IS_OWNED_TAG':'已拥有','BOUGHT_PRICE_TAG':'购入价','manufacturer':'制造商','manufacture':'制造方',
+  'ITEM_TYPE_STRING':'物品类型','IMPORTANT_TAG':'重要物品','CUSTOM_NAME_TAG':'自定义名',
+  'TOGGLE_APPEARANCE_TAG':'可切换外观','STOLEN_TAG':'赃物','STOLEN_VALUE_INT':'赃物价值',
+  'ITEM_HIDDEN_TAG':'隐藏物品(走私暗格内)','SYSTEM_TAG':'系统标签','SYSTEM_TAG_UTILITY':'系统·工具',
+  'CONTRABAND':'违禁品','CONTRABAND_LEVEL':'违禁等级','CONTRABAND_ITEM_TAG':'违禁物品',
+  /* 耐久 */
+  'DURABILITY_TAG':'耐久度','DURABILITY_FAKE_TAG':'耐久度(伪造显示值)','MAX_DURABILITY_TAG':'最大耐久度',
+  'DEFAULT_DURABILITY_TAG':'初始耐久度','DURABILITY_PRICING_MODE_TAG':'耐久计价模式','DURABILITY_ZERO_VALUE_TAG':'耐久归零价值',
+  'INGOT_PURITY_TAG':'锭纯度','INGOT_PURITY_FAKE_TAG':'锭纯度(伪造显示值)',
+  /* 模组 */
+  'MODULE':'模组','MODULE_TAG':'模组','MODULE_TYPE':'模组类型','MODULE_TYPE_UNIVERSAL':'通用型模组',
+  'MODULE_TYPE_ALARM':'警报型模组','MODULE_TYPE_FURNACE':'熔炉型模组','MODULE_TIER_INT':'模组等级',
+  'MODULE_UPGRADE_STAGE_INT':'模组升级阶段','MODULE_EFFECT1_TAG':'模组效果①','MODULE_EFFECT2_TAG':'模组效果②',
+  'SHIP_MODULE_TAG':'舰载模组','ALARM_MODULE':'警报模组',
+  'BONUS_PERCENTAGE_PERFORMANCE_INT':'性能加成%','BONUS_PERCENTAGE_EFFICIENCY_INT':'效率加成%','BONUS_PERCENTAGE_QUALITY_INT':'质量加成%',
+  'TEMP_PERCENTAGE_PERFORMANCE_INT':'临时性能加成%','TEMP_PERCENTAGE_EFFICIENCY_INT':'临时效率加成%','TEMP_PERCENTAGE_QUALITY_INT':'临时质量加成%',
+  'TOTAL_PERCENTAGE_PERFORMANCE_BONUS_INT':'性能总加成%','TOTAL_PERCENTAGE_QUALITY_BONUS_INT':'质量总加成%','TOTAL_PERCENTAGE_POWER_BONUS_INT':'功耗总加成%',
+  'IS_RECEIVING_BONUS_FROM_MODULE_BOOL':'正在获得模组加成','NODE':'节点',
+  /* 能源与机器 */
+  'ENERGY_CELL':'电池','power_source_item':'电源物品','power_source_item_energy':'当前电量','power_source_item_max_energy':'最大电量',
+  'power_source_item_bandwidth':'供电带宽','power_source_item_recharge':'可充电','POWERED':'已通电','IS_PROJECTOR_ACTIVE':'投影仪运行中',
+  'MACHINE':'机器','machinery':'机器类别','machinery_drawn_power':'机器实际耗电','MACHINERY_DRAWN_POWER_BASE':'机器基础耗电',
+  'is_machinery_powered':'机器已通电','machinery_received_power':'机器获得电力','MACHINE_RECHARGABLE_TAG':'可充电机器',
+  'STANDARD_MACHINE_TAG':'标准机器','MACHINE_STATE_TAG':'机器状态','MACHINE_PROGRESS_CURRENT_TAG':'机器进度(当前)',
+  'MACHINE_PROGRESS_TARGET_TAG':'机器进度(目标)','BASE_PROCESSING_SPEED_TAG':'基础处理速度','CURRENT_PROCESSING_SPEED_TAG':'当前处理速度',
+  'REQUIRED_PROGRESS':'所需进度','MACHINE_QUALITY_RATIO_INT':'机器质量比率','MACHINE_PERFORMANCE_RATIO_INT':'机器性能比率',
+  'MACHINE_EFFICIENCY_RATIO_INT':'机器效率比率','MACHINE_PERFORMANCE_REDUCES_POWER_TAG':'性能越高越省电',
+  /* 容器 */
+  'CONTAINER_TAG':'容器','CONTAINER_TOOLTIP_TAG':'容器提示','CONTAINER_TEMP_TAG':'容器温度','STORAGE':'储物',
+  'LOCKED_CONTAINER_TAG':'上锁容器','LOCKED_TAG':'已上锁','LOCK_ID':'锁ID','LOCK_STATUS':'锁状态',
+  'LOOT_CRATE_ID_STRING':'战利品箱ID','LOTTERY_SPAWN_LUCK_INT':'抽奖刷新幸运','NESTABLE_DEVICE_TAG':'可嵌套设备',
+  'FILTER_CONTAINER_TAG':'滤芯容器','GRADUATED_CONTAINER_TAG':'刻度容器','BACKPACK_TAG':'背包','backpack':'背包','equippable':'可装备',
+  /* 液体与酒 */
+  'LIQUID_CONTAINER_TAG':'液体容器','LIQUID_CONTAINER_CAPACITY':'液体容量','LIQUID_CONTAINER_BASE_PRICE_TAG':'液体容器基础价',
+  'CURRENT_CHARGE_TAG':'当前装量','WATER':'水','FILTER':'滤芯','FILTER_SIZE_TAG':'滤芯规格','WATER_FILTER':'滤水器',
+  'WATER_PURIFICATION_SUPPLY':'净水耗材','WINE_CONTAINER_TAG':'酒容器','WINE_CONTAINER_STATE':'酒容器状态','WINE_YEAST_TAG':'酒曲',
+  'WINE_YEAST_POWER_INT':'酒曲效力','WINE_YEAST_REUSABLE_TAG':'酒曲可重复使用','WINE_SCORE_INT':'酒评分',
+  'FERMENTATION_TIME_REMAINING_INT':'发酵剩余时间','AGE_INT':'陈化天数','AGE_VALUE_MOD_PER_DAY_INT':'每日陈化增值','WINE_EXTRACT':'葡萄酒提取物',
+  /* 液体成分（_values 里的 CURRENT_PART_*） */
+  'CURRENT_PART_WATER':'成分·水','CURRENT_PART_HEAVY_METAL':'成分·重金属','CURRENT_PART_ORGANIC_WASTE':'成分·有机废物',
+  'CURRENT_PART_MICROPLASTIC':'成分·微塑料','CURRENT_PART_MICROBE':'成分·微生物','CURRENT_PART_CHEMICAL_CONTAMINANT':'成分·化学污染物',
+  'CURRENT_PART_PHYSICAL_CONTAMINANT':'成分·物理污染物','CURRENT_PART_MINERAL':'成分·矿物质','CURRENT_PART_DREAM_CAP_MUSH':'成分·梦帽菇',
+  'CURRENT_PART_DREAM_CAP_EXTRACT':'成分·梦帽提取物','CURRENT_PART_PLANT_MATTER':'成分·植物纤维','CURRENT_PART_ALCOHOL':'成分·酒精',
+  'CURRENT_PART_CAFFEINE':'成分·咖啡因','CURRENT_PART_PROTEIN':'成分·蛋白质','CURRENT_PART_FAT':'成分·脂肪','CURRENT_PART_STARCH':'成分·淀粉',
+  'CURRENT_PART_SUGAR':'成分·糖','CURRENT_PART_COFFEE_MUSH':'成分·咖啡菇','CURRENT_PART_CONTRACEPTIVE':'成分·避孕药',
+  'CURRENT_PART_ZYANIDE':'成分·氰化物','CURRENT_PART_NIGHTMARE_EXTRACT':'成分·梦魇提取物','CURRENT_PART_NIGHTMARE_CAP_MUSH':'成分·梦魇帽菇',
+  'CURRENT_PART_CHLORINE':'成分·氯','CURRENT_PART_SYNAPREST':'成分·辛纳普雷斯特','CURRENT_PART_FANTA':'成分·芬达',
+  'CURRENT_PART_METHYLOL':'成分·甲醇','CURRENT_PART_REDUCING_AGENT':'成分·还原剂','CURRENT_PART_ACID':'成分·酸','CURRENT_PART_BASE':'成分·碱',
+  'CURRENT_PART_STABILIZING_AGENT':'成分·稳定剂','CURRENT_PART_DEBRIS':'成分·碎屑','CURRENT_PART_LIPOBOND_AGENT':'成分·脂粘剂',
+  'CURRENT_PART_LIVESTOCK_STEROID':'成分·牲畜类固醇','CURRENT_PART_LIVESTOCK_IMMUNITY':'成分·牲畜免疫剂','CURRENT_PART_WINE_EXTRACT':'成分·葡萄酒提取物',
+  /* 化学与药品 */
+  'CHEM_ITEM_TAG':'化学物品','CHEMICAL_INTENT_TAG':'化学用途','CHEMICAL_PRODUCT_TAG':'化学制品',
+  'CHEMICAL_PRODUCT_PURITY_TAG':'化学制品纯度','CHEMICAL_SUPPLIES':'化学耗材','BLENDABLE_TAG':'可混合','SOLUBLE_TAG':'可溶解',
+  'ACTIVATE_INGREDIENT_TAG':'反应成分','SUBSTANCE':'物质','NARCOTIC':'毒品','NARCOTIC_VALUE':'毒品价值','ALCOHOL_VALUE':'酒价值',
+  'MEDICAL':'医疗品','ITEM_MEDICAL_TAG':'医疗物品','injector':'注射剂','proficiency':'熟练度','TREAT':'治疗品',
+  /* 食物 */
+  'CALORIE_VALUE_TAG':'热量值','FOOD':'食物','PROCESSED_FOOD':'加工食品','BREVAGE':'饮料','MATERIAL':'材料','MATERIAL_TAG':'材料',
+  'BASIC_MATERIAL':'基础材料','ORE_TAG':'矿石','SCRAP_METAL':'废金属','JUNK':'垃圾','LUXURY_ITEM':'奢侈品','HOUSEHOLD_GOOD':'生活用品',
+  'AMENITY_ITEM_TAG':'便利设施物品','amenities':'便利设施','amenities_nutrition':'便利设施·营养','amenities_type':'便利设施·类型',
+  'amenities_use':'便利设施·用途',
+  /* 农业与种子 */
+  'FARMING_SUPPLIES':'农业耗材','NUTRIENT_TABLET':'营养片','SEED':'种子','SEED_ITEM_TAG':'种子物品','HARVEST_QUANTITY':'收获数量',
+  'HARVEST_ITEM_ID':'收获物ID','REQUIRED_NUTRIMENT_LEVEL_TAG':'所需营养等级','REQUIRED_NUTRIMENT_RANGE_TAG':'所需营养范围',
+  'WATER_USE_RATE':'耗水速率','NUTRIMENT_USE_RATE':'耗营养速率','CONTAMINANT_EFFECT_MULT':'污染物影响倍率',
+  /* 武器弹药 */
+  'WEAPON':'武器','MELEE_WEAPON':'近战武器','BLADE_ITEM_TAG':'刀剑类','AMMUNITION':'弹药','GUN_CALIBER_TAG':'口径',
+  'AMMO_TYPE_TAG':'弹药类型','MIDLINE':'中档品',
+  /* 进度类 */
+  'PROGRESS_ITEM_TAG':'进度物品','PROGRESS_ITEM_TARGET_TAG':'进度目标','PROGRESS_ITEM_SHOW_DEFAULT_TOOLTIP':'显示默认提示',
+  'PROGRESS_TYPE_MACHINE_TAG':'进度类型(机器)','DESEQUENCER_TARGET_ID_TAG':'解序器目标ID','DESEQUENCER_STATE_TAG':'解序器状态',
+  'DESEQUQUENCER_PROGRESS_TAG':'解序器进度','TRANSMITTER_TARGET_TAG':'发信器目标',
+  /* 其他物品类 */
+  'ACCESS_CARD':'门禁卡','DOCUMENT':'文件','MAGNIFYING_GLASS':'放大镜','LABELER_TAG':'标签机','LABELER_BLUE':'标签机(蓝)',
+  'TOOL':'工具','TOOLBOX_TAG':'工具箱','TOOLBOX_UNLOCKED_SLOTS_INT':'工具箱已解锁槽位','SHOWCASE_SPECIAL_ITEM_TAG':'展柜特殊物品',
+  'CAN_USE_ON_NON_OWNED_TAG':'可用于他人财物','ADDITIONAL_EFFECT_STRING':'附加效果','PRINTER_MATERIAL_TAG':'打印耗材',
+  'BOTTLE_PRINTER_UPGRADE_COUNT_TAG':'瓶子打印机升级次数',
+  /* 计次使用 */
+  'USE_COUNT_ITEM_TAG':'计次使用物品','MAX_USE_COUNT_INT':'最大使用次数','CURRENT_USE_COUNT_INT':'当前剩余次数',
+  'USE_COUNT_TRANSFERABLE_BOOL':'次数可转移','USE_COUNT_DESTROY_ON_EMPTY_BOOL':'用完销毁','USE_COUNT_AUTO_VALUE_BOOL':'自动计值',
+  'USE_COUNT_BASE_VALUE_INT':'基础计值','USE_COUNT_VALUE_PER_USE_INT':'每次使用计值',
+  /* 冰箱 / 涡轮 / 学习算法 */
+  'FRIDGE_TAG':'冰箱','FRIDGE_STORAGE_UPGRADE_COUNT_TAG':'冰箱储物升级次数','FRIDGE_POWER_UPGRADE_COUNT_TAG':'冰箱电力升级次数',
+  'TURBO_BOOST_ADV':'涡轮增压(高级)','TURBO_READY_TAG':'涡轮就绪','TURBO_BOOST_ELIGIBLE_TAG':'可涡轮增压',
+  'BREEDER_POWER_SOURCE_ITEM_TAG':'繁殖器电源','SCAV_SCANNER_DOUBLE_CHANCE':'拾荒扫描双倍几率',
+  'LEARNING_ALGO_MAX_QUALITY_INT':'学习算法·最大质量','LEARNING_ALGO_MAX_PERFORMANCE_INT':'学习算法·最大性能',
+  'LEARNING_ALGO_MAX_EFFICIENCY_INT':'学习算法·最大效率','TOTAL_CONTAMINANT_REMOVED_TAG':'累计去除污染物',
+};
+/* itemTypes 里出现但 _keys 没有的 */
+const TYPE_CN = {
+  'STORAGE':'储物','MACHINE':'机器','CONTRABAND':'违禁品','ACCESS_CARD':'门禁卡','CHEMICAL_SUPPLIES':'化学耗材',
+  'LUXURY_ITEM':'奢侈品','HOUSEHOLD_GOOD':'生活用品','WATER_PURIFICATION_SUPPLY':'净水耗材','MEDICAL':'医疗','NARCOTIC':'毒品',
+  'SUBSTANCE':'物质','AMMUNITION':'弹药','FARMING_SUPPLIES':'农业耗材','SEED':'种子','TREAT':'治疗品','FOOD':'食物',
+  'PROCESSED_FOOD':'加工食品','BREVAGE':'饮料','MATERIAL':'材料','BASIC_MATERIAL':'基础材料','FILTER':'滤芯','JUNK':'垃圾',
+  'TOOL':'工具','WATER':'水','ENERGY_CELL':'电池','WEAPON':'武器','MIDLINE':'中档品','MELEE_WEAPON':'近战武器',
+  'MODULE':'模组','NODE':'节点','DOCUMENT':'文件','ALCOHOL':'酒','ALARM_MODULE':'警报模组',
+};
+const tagCn = k => TAG_CN[k] || TYPE_CN[k] || '';
+
+/* 物品的 tag 映射：_values 里每项以 <identifier>k__BackingField 作为 tag 名 */
+function tagMapOf(itemNode){
+  const m = {};
+  for(const v of invArr(itemNode, '_values')){
+    if(v.t !== 'obj') continue;
+    const idn = invChild(v, '<identifier>k__BackingField');
+    if(idn && idn.t === 'str') m[idn.v] = v;
+  }
+  return m;
+}
+const MOD_TAGS = [
+  ['BONUS_PERCENTAGE_PERFORMANCE_INT', '性能加成'],
+  ['BONUS_PERCENTAGE_EFFICIENCY_INT', '效率加成'],
+  ['BONUS_PERCENTAGE_QUALITY_INT', '质量加成'],
+];
+function invRows(ctx){
+  const arr = lookup(ctx.root, 'saveItems');
+  if(!arr || arr.t !== 'arr') return null;
+  const owner = new Map();
+  for(const it of arr.children){
+    const nm = invStr(it, 'name') || invStr(it, 'identifier');
+    for(const c of invArr(it, 'childItems')) if(c.t === 'num') owner.set(c.v, nm);
+  }
+  return arr.children.map((it, idx) => {
+    const uuidN = invChild(it, 'uuid');
+    const uuid = uuidN && uuidN.t === 'num' ? uuidN.v : null;
+    const tm = tagMapOf(it);
+    const tf = (tag, field) => { const v = tm[tag]; return v ? (invChild(v, field) || null) : null; };
+    return {
+      idx, node: it, name: invStr(it, 'name'), id: invStr(it, 'identifier'), uuid, tm,
+      cnt: invChild(it, 'unitCount'), val: invChild(it, 'unitValue'), base: invChild(it, 'unitBaseValue'),
+      custom: tf('CUSTOM_NAME_TAG', 'internalValueString'),
+      perf: tf(MOD_TAGS[0][0], 'valueInt'), eff: tf(MOD_TAGS[1][0], 'valueInt'), qua: tf(MOD_TAGS[2][0], 'valueInt'),
+      temp: ['TEMP_PERCENTAGE_PERFORMANCE_INT', 'TEMP_PERCENTAGE_EFFICIENCY_INT', 'TEMP_PERCENTAGE_QUALITY_INT'].map(t => tf(t, 'valueInt')),
+      kids: invArr(it, 'childItems').length, types: invArr(it, 'itemTypes').map(x => x.t === 'str' ? x.v : '').join(','),
+      owner: uuid != null && owner.has(uuid) ? owner.get(uuid) : '',
+    };
+  });
+}
+/* 选中项：跨渲染保留（按 item 节点），用于「批量同步」改同一属性 */
+function updateSelInfo(){
+  const n = S.sel.size;
+  $('invSelInfo').innerHTML = n ? `已选中 <b style="color:var(--accent)">${n}</b> 件` : '未选中物品';
+}
+/* 把一次改动同步到其余选中项：getNode(行) 取出目标行里对应的那个字段节点 */
+function syncToSelected(srcRow, srcNode, getNode, value){
+  if(!$('invSync').checked || !S.sel.size) return { n:0, skipped:0 };
+  const ctx = S.invs.get($('invPick').value);
+  if(!ctx) return { n:0, skipped:0 };
+  let n = 0, skipped = 0;
+  for(const itemNode of S.sel){
+    if(itemNode === srcRow.node) continue;
+    const r = S.rowByNode.get(itemNode);
+    if(!r) continue;
+    const target = getNode(r);
+    if(!target) continue;
+    if(srcNode && target.t !== srcNode.t){ skipped++; continue; }   // 类型不同（如有的是数字有的是文本）就不动它
+    target._map = ctx.changes;
+    commit(target, value, null);
+    n++;
+  }
+  return { n, skipped };
+}
+/* 分组键：类型 / 归属容器 / 物品名 / identifier */
+function groupKeyOf(r, mode){
+  if(mode === 'type') return (r.types ? r.types.split(',')[0] : '') || '(无类型)';
+  if(mode === 'owner') return r.owner || '(不在容器内)';
+  if(mode === 'name') return r.name || '(无名)';
+  if(mode === 'id') return r.id || '(无 identifier)';
+  return '';
+}
+function renderInv(keepFilter){
+  const box = $('invBox'), info = $('invInfo');
+  box.innerHTML = ''; delete info.dataset.base;
+  S.rowByNode = new Map();
+  updateSelInfo();
+  const ctx = loadInv($('invPick').value);
+  if(!ctx){ info.textContent = '这个存档里没有该字段'; return; }
+  const rows = invRows(ctx);
+  if(!rows){ info.textContent = '内层 JSON 里没有 saveItems 数组'; return; }
+  const q = ($('invSearch').value || '').trim().toLowerCase();
+  const wantTag = q.includes('🏷') || q.includes('自定义名');
+  const shown = !q ? rows
+    : wantTag ? rows.filter(r => !!r.custom)
+    : rows.filter(r => ((r.name || '') + ' ' + (r.id || '') + ' ' + r.types + ' ' + (r.owner || '') + ' ' + (r.custom ? r.custom.v : '')).toLowerCase().includes(q));
+  ctx.shown = shown;
+  /* 分组：切换分组方式时重置折叠状态 */
+  const mode = $('invGroup').value;
+  if(ctx.openMode !== mode){ ctx.open = new Set(); ctx.openMode = mode; }   // 默认全部收起
+  let groups = null;
+  if(mode !== 'none'){
+    const m = new Map();
+    for(const r of shown){ const k = groupKeyOf(r, mode); if(!m.has(k)) m.set(k, []); m.get(k).push(r); }
+    groups = [...m.entries()].sort((a, b) => b[1].length - a[1].length);
+  }
+  const visCount = groups ? groups.reduce((s, [k, l]) => s + (ctx.open.has(k) ? l.length : 0), 0) : shown.length;
+  info.dataset.base = `共 ${rows.length} 件` + (groups
+      ? `，分 ${groups.length} 组（已展开 ${ctx.open.size} 组 · 可见 ${visCount} 件；点组名展开）`
+      : `，显示 ${shown.length} 件`) + (q ? '（已过滤）' : '') +
+                     ` · 有自定义名 ${rows.filter(r => r.custom).length} 件 · 含模组加成 ${rows.filter(r => r.perf || r.eff || r.qua).length} 件` +
+                     ` · 内层 JSON ${(ctx.text.length/1024).toFixed(0)} KB`;
+  updateInvInfo();
+  if(!shown.length){ box.appendChild(el('div','hint','没有匹配的物品')); return; }
+  for(const r of rows) for(const n of [r.custom, r.perf, r.eff, r.qua]) if(n){ n._badges = []; n._badgeUpdaters = []; }   // 旧 DOM 的徽章引用先清掉
+  /* 表头与数据行共用同一套 flex 列宽，保证左右对齐 */
+  const INV_COLS = [
+    {w:'14px'}, {w:'22px', ck:true},
+    {grow:1, label:'物品名 / identifier'},
+    {w:'90px', label:'🏷 自定义名'},
+    {w:'52px', label:'数量', title:'本游戏物品不叠加，数量通常恒为 1（可改但一般无意义）', align:'right'}, {w:'72px', label:'单价', align:'right'}, {w:'60px', label:'基础价', align:'right'},
+    {w:'150px', label:'归属 / 类型'}, {w:'156px', label:'🧩 属性 / 操作'}, {w:'20px'},
+  ];
+  const head = el('div','row'); head.style.cssText = 'color:var(--dim);font-size:12px';
+  let headCk = null;
+  for(const c of INV_COLS){
+    if(c.ck){
+      headCk = el('input'); headCk.type = 'checkbox';
+      headCk.style.cssText = 'flex:0 0 ' + c.w;
+      headCk.title = '全选 / 取消当前显示的全部物品';
+      headCk.onchange = () => {
+        for(const r of shown){ headCk.checked ? S.sel.add(r.node) : S.sel.delete(r.node); }
+        renderInv(true);
+      };
+      head.appendChild(headCk);
+      continue;
+    }
+    const s = el('span', null, c.label || '');
+    s.style.cssText = (c.grow ? 'flex:1 1 0;min-width:0' : 'flex:0 0 ' + c.w) + (c.align === 'right' ? ';text-align:right' : '');
+    if(c.title) s.title = c.title;
+    head.appendChild(s);
+  }
+  box.appendChild(head);
+  const numInp = (n, w) => {
+    if(!n){ const s = el('span','hint','—'); s.style.cssText = 'flex:0 0 ' + w + ';text-align:right'; return s; }
+    const i = makeInput(n, {map: ctx.changes});
+    i.style.cssText = 'flex:0 0 ' + w + ';text-align:right';
+    return i;
+  };
+  /* 行的构造抽成函数：分组模式下每个组内复用 */
+  const emitRow = (r, ri) => {
+    const row = el('div','row inv-row');
+    if(ri % 2) row.style.background = 'rgba(127,127,127,.10)';   // 斑马纹，便于横向看行
+    const tw0 = el('span','tw',''); tw0.style.cssText = 'flex:0 0 ' + INV_COLS[0].w;
+    row.appendChild(tw0);
+    const ck = el('input'); ck.type = 'checkbox';
+    ck.style.cssText = 'flex:0 0 ' + INV_COLS[1].w;
+    ck.checked = S.sel.has(r.node);
+    ck.title = '选中这件物品（配合上方「批量同步」统一改属性）';
+    ck.onchange = () => { ck.checked ? S.sel.add(r.node) : S.sel.delete(r.node); updateSelInfo(); };
+    row.appendChild(ck);
+    S.rowByNode.set(r.node, r);
+    const nm = el('span','name');
+    nm.style.cssText = 'flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    nm.textContent = r.name || '(无名)';
+    if(r.custom){
+      const b = el('span','tag', ' 🏷 ' + r.custom.v);
+      (r.custom._badges = r.custom._badges || []).push(b);
+      nm.appendChild(b);
+    }
+    if(r.perf || r.eff || r.qua){       // 模组：行内显示 性能/效率/质量 快照，随改动实时更新
+      const mb = el('span','tag','');
+      mb.title = '模组加成（性能 / 效率 / 质量 %）';
+      const upd = () => {
+        const g = n => { if(!n) return '—'; const ch = (n._map || S.changes).get(n); return ch ? String(ch.value) : String(n.v); };
+        mb.textContent = ` ⚙ ${g(r.perf)}/${g(r.eff)}/${g(r.qua)}`;
+      };
+      for(const n of [r.perf, r.eff, r.qua]) if(n) (n._badgeUpdaters = n._badgeUpdaters || []).push(upd);
+      upd();
+      nm.appendChild(mb);
+    }
+    const idt = el('span','tag', ' ' + (r.id || ''));
+    nm.appendChild(idt); nm.title = `${r.name}\nidentifier: ${r.id}\nuuid: ${r.uuid}` + (r.custom ? `\n自定义名: ${r.custom.v}` : '');
+    row.appendChild(nm);
+    const cInp = r.custom ? makeInput(r.custom, {map: ctx.changes}) : el('span','hint','—');
+    cInp.style.cssText = 'flex:0 0 ' + INV_COLS[3].w;
+    row.appendChild(cInp);
+    const cntI = numInp(r.cnt, INV_COLS[4].w);   row.appendChild(cntI);
+    const valI = numInp(r.val, INV_COLS[5].w);   row.appendChild(valI);
+    const baseI = numInp(r.base, INV_COLS[6].w); row.appendChild(baseI);
+    /* 这几列也参与「批量同步」 */
+    const addSync = (inpEl, srcNode, getNode) => {
+      if(!inpEl || inpEl.tagName !== 'INPUT' || !srcNode) return;
+      inpEl.addEventListener('change', () => {
+        const v = srcNode.t === 'bool' ? inpEl.checked : inpEl.value;
+        const res = syncToSelected(r, srcNode, getNode, v);
+        if(res.n) setStatus(`已把该值同步到其余 <b>${res.n}</b> 件选中物品` + (res.skipped ? `（${res.skipped} 件字段类型不同，已跳过）` : ''));
+      });
+    };
+    addSync(cInp, r.custom, x => x.custom); addSync(cntI, r.cnt, x => x.cnt);
+    addSync(valI, r.val, x => x.val); addSync(baseI, r.base, x => x.base);
+    const meta = el('span','tag', (r.owner ? '在「' + r.owner + '」' : (r.kids ? '容器·' + r.kids + ' 项' : '')) + (r.types ? ' ' + r.types : ''));
+    meta.style.cssText = 'flex:0 0 ' + INV_COLS[7].w + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    meta.title = (r.owner ? '所在容器：' + r.owner : '不在容器内') + (r.types ? '　类型：' + r.types.split(',').map(t => tagCn(t) || t).join('、') : '');
+    row.appendChild(meta);
+    /* 「🧩 属性」= 展开并跳到该物品的 _values 可编辑列表（模组加成也在里面，不再单设按钮） */
+    const more = el('button', null, '🧩 属性');
+    more.style.cssText = 'flex:0 0 ' + INV_COLS[8].w + ';font-size:11px;padding:1px 6px;overflow:hidden';
+    more.title = '展开并跳到这条物品的 _values 属性（可直接编辑）';
+    const holder = el('div');
+    holder.style.cssText = 'display:none;border-left:2px solid var(--accent);margin:0 0 6px 26px;padding-left:6px';
+    let built = false;
+    const openHolder = jump => {
+      if(!built){
+        holder.appendChild(tagBlock(ctx, r));
+        const treeWrap = treeNode(r.node, (r.name || r.id || '物品') + ' · 原始字段', 1);
+        holder.appendChild(treeWrap);
+        const tw = treeWrap.querySelector('.tw'); if(tw) tw.onclick();   // 自动展开第一层
+        const raw = el('div','hint', '该物品的原始 JSON（改上面任意字段即写入存档）：');
+        const pre = el('pre', null, prettyNode(r.node));
+        pre.style.cssText = 'max-height:180px;overflow:auto;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px;font-size:11.5px;white-space:pre-wrap;word-break:break-all';
+        const cp = el('button', null, '复制原始 JSON');
+        cp.style.cssText = 'font-size:11px;padding:2px 8px;margin:4px 0 8px';
+        cp.onclick = () => { navigator.clipboard && navigator.clipboard.writeText(prettyNode(r.node)); setStatus('已复制「' + (r.name || r.id) + '」的原始 JSON'); };
+        holder.appendChild(raw); holder.appendChild(pre); holder.appendChild(cp);
+        built = true;
+      }
+      const open = holder.style.display === 'none';
+      holder.style.display = open ? 'block' : 'none';
+      more.textContent = (open ? '▾' : '▸') + ' 属性';
+      if(open && jump){
+        const t = holder.querySelector(jump === 'mod' ? '[data-modrow]' : '[data-attrs]');
+        if(t && t.scrollIntoView) t.scrollIntoView({ block: 'nearest' });
+      }
+    };
+    more.onclick = () => openHolder('attrs');
+    row.appendChild(more);
+    const u = el('span','undo','⟲'); u.title = '撤销这件物品的改动';
+    u.style.cssText = 'flex:0 0 ' + INV_COLS[9].w;
+    u.onclick = () => { for(const n of [r.custom, r.cnt, r.val, r.base, r.perf, r.eff, r.qua]) if(n && ctx.changes.has(n)) { n._map = ctx.changes; undo(n); } renderInv(true); };
+    row.appendChild(u);
+    for(const n of [r.custom, r.cnt, r.val, r.base, r.perf, r.eff, r.qua]) if(n){ n._map = ctx.changes; refreshControls(n); }
+    box.appendChild(row);
+    box.appendChild(holder);
+  };
+  /* 渲染：分组 或 平铺 */
+  if(groups){
+    for(const [k, list] of groups){
+      const isOpen = ctx.open.has(k);
+      const gh = el('div','row');
+      gh.style.cssText = 'font-weight:600;background:var(--panel2);border-left:3px solid var(--accent);margin-top:5px';
+      const gtw = el('span','tw', isOpen ? '▾' : '▸'); gtw.style.cssText = 'flex:0 0 14px;cursor:pointer;color:var(--accent);font-size:14px';
+      const cn = tagCn(k);
+      const gnm = el('span', null, ((cn && cn !== k) ? cn + '  ' : '') + k + '（' + list.length + ' 件）');
+      gnm.style.cssText = 'flex:1 1 0;min-width:0;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      const selAll = el('button', null, '选中本组');
+      selAll.style.cssText = 'flex:0 0 78px;font-size:11px;padding:1px 6px';
+      selAll.title = '把本组全部物品加入选中（配合「批量同步」统一改属性）';
+      selAll.onclick = () => { for(const r of list) S.sel.add(r.node); renderInv(true); };
+      const only = el('button', null, '只留本组');
+      only.style.cssText = 'flex:0 0 78px;font-size:11px;padding:1px 6px';
+      only.title = '把搜索框设为本组标识，只看这一组';
+      only.onclick = () => { $('invSearch').value = k; renderInv(); };
+      const tog = () => { if(ctx.open.has(k)) ctx.open.delete(k); else ctx.open.add(k); renderInv(true); };
+      gtw.onclick = tog; gnm.onclick = tog;
+      gh.appendChild(gtw); gh.appendChild(gnm); gh.appendChild(selAll); gh.appendChild(only);
+      box.appendChild(gh);
+      if(isOpen) list.forEach((r, i) => emitRow(r, i));
+    }
+  } else {
+    shown.forEach((r, i) => emitRow(r, i));
+  }
+}
+function updateInvInfo(){
+  const info = $('invInfo');
+  if(!info.dataset.base) return;
+  const ctx = S.invs.get($('invPick').value);
+  info.textContent = info.dataset.base + ((ctx && ctx.changes.size) ? ` · 已改 ${ctx.changes.size} 处` : '');
+}
+function prettyNode(node, depth){
+  depth = depth || 0;
+  const pad = '  '.repeat(depth), pad2 = '  '.repeat(depth + 1);
+  if(node.t === 'obj'){
+    if(!node.children.length) return '{}';
+    return '{\n' + node.children.map(c => pad2 + JSON.stringify(c.key) + ': ' + prettyNode(c.v, depth + 1)).join(',\n') + '\n' + pad + '}';
+  }
+  if(node.t === 'arr'){
+    if(!node.children.length) return '[]';
+    return '[\n' + node.children.map(c => pad2 + prettyNode(c, depth + 1)).join(',\n') + '\n' + pad + ']';
+  }
+  if(node.t === 'str') return JSON.stringify(node.v);
+  if(node.t === 'bool') return node.v ? 'true' : 'false';
+  if(node.t === 'null') return 'null';
+  return String(node.v);
+}
+/* 展开区：_keys → 中文，逐项给出「可直接编辑的主值」+ 可展开该项全部字段
+   主值按 tag 后缀挑字段：*_INT→valueInt、*_FLOAT→valueFloat、*_BOOL→valueBool、其余优先非空 internalValueString */
+const tagFieldNameOf = (v, node) => { const c = v.children.find(x => x.v === node); return c ? c.key : ''; };
+function tagValueField(v, tagName){
+  const pick = f => { const n = invChild(v, f); return (n && (n.t === 'num' || n.t === 'str' || n.t === 'bool')) ? n : null; };
+  const s = pick('internalValueString');
+  if(s && s.v) return s;                       // 有字符串值就先用它（自定义名、锁ID、制造方…）
+  if(/_BOOL$/.test(tagName)) return pick('valueBool') || pick('valueEnabled');
+  if(/_FLOAT$/.test(tagName)) return pick('valueFloat') || pick('valueDouble');
+  if(/_LONG$/.test(tagName)) return pick('valueLong') || pick('valueInt');
+  if(/_INT$/.test(tagName)) return pick('valueInt') || s;
+  const i = pick('valueInt'), f = pick('valueFloat'), b = pick('valueBool');
+  if(i && i.v) return i;
+  if(f && f.v) return f;
+  if(b && b.v) return b;
+  return pick('valueEnabled') || s || i;       // 纯标记型 tag：给一个启用/关闭开关
+}
+function tagBlock(ctx, row){
+  const itemNode = row.node;
+  const tm = tagMapOf(itemNode);
+  const ks = invArr(itemNode, '_keys').map(n => n.t === 'str' ? n.v : '').filter(Boolean);
+  const wrap = el('div');
+  wrap.dataset.attrs = '1';
+  wrap.appendChild(el('div','hint','🧩 属性（来自 _keys / _values，主值可直接改；点 ▸ 看该项的全部字段。勾选行首复选框后，改动会同步到其余选中项）'));
+  const list = el('div');
+  list.style.cssText = 'margin:4px 0 10px;border-left:2px solid var(--line);padding-left:6px';
+  for(const k of ks){
+    const v = tm[k];
+    const rowEl = el('div');
+    rowEl.style.cssText = 'display:flex;gap:6px;align-items:center;font-size:12px;padding:1px 0';
+    const cn = tagCn(k);
+    const nm = el('span', null, cn || k);
+    nm.style.cssText = 'color:' + (cn ? 'var(--warn)' : 'var(--fg)') + ';flex:0 0 96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    nm.title = cn || '这个标签还没收录中文对照（告诉我可以补进词典）';
+    const kk = el('span', null, cn ? k : '未翻译');
+    kk.style.cssText = 'color:var(--dim);font-size:10.5px;flex:0 0 200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    kk.title = k;
+    rowEl.appendChild(nm); rowEl.appendChild(kk);
+    list.appendChild(rowEl);
+    if(!v){ rowEl.appendChild(el('span','hint','（_values 里没有对应项）')); continue; }
+    const vn = tagValueField(v, k);
+    if(vn){
+      const inp = makeInput(vn, {map: ctx.changes});
+      inp.style.cssText = 'flex:0 0 132px;font-size:12px';
+      const fieldName = tagFieldNameOf(v, vn);
+      inp.title = k + ' → ' + fieldName;
+      inp.addEventListener('change', () => {           // 批量同步：同一属性改到其余选中项
+        const v = vn.t === 'bool' ? inp.checked : inp.value;
+        const res = syncToSelected(row, vn, x => {
+          const tv = x.tm[k];
+          const f = tv && invChild(tv, fieldName);
+          return f || null;
+        }, v);
+        if(res.n) setStatus(`已把「${cn || k}」＝ <b>${v}</b> 同步到其余 <b>${res.n}</b> 件选中物品` +
+                            (res.skipped ? `（${res.skipped} 件该项类型不同，已跳过）` : ''));
+      });
+      rowEl.appendChild(inp);
+    } else {
+      rowEl.appendChild(el('span','hint','—'));
+    }
+    const tw = el('span','tw','▸');
+    tw.style.cssText = 'flex:0 0 12px;cursor:pointer;color:var(--dim)';
+    tw.title = '展开这一项的全部字段（identifier / valueEnabled / 各类型值）';
+    const box = el('div'); box.style.display = 'none';
+    let built = false;
+    tw.onclick = () => {
+      if(!built){ box.appendChild(treeNode(v, k, 2)); built = true; }
+      const open = box.style.display === 'none';
+      box.style.display = open ? 'block' : 'none';
+      tw.textContent = open ? '▾' : '▸';
+    };
+    rowEl.appendChild(tw);
+    list.appendChild(box);
+  }
+  wrap.appendChild(list);
+  return wrap;
+}
+/* 内嵌 JSON 的写回：递归生成「新文本 + 新字面量」，改动只落在目标字符上 */
+function buildSub(s){
+  const innerChanges = new Map(s.changes);
+  const edits = [...s.changes.values()].map(it => ({
+    start: it.node.start, end: it.node.end,
+    raw: encStr(encVal(it.node, it.value)).slice(1, -1),
+  }));
+  for(const d of subsOf(s.root)){
+    if(!d.changes.size) continue;
+    const r = buildSub(d);
+    innerChanges.set(d.node, {node: d.node, value: r.text});
+    edits.push({ start: d.node.start, end: d.node.end, raw: encStr(r.literal).slice(1, -1) });
+  }
+  return { text: buildOutput(s.text, innerChanges), literal: patchLiteral(s.literal, edits) };
+}
+
+/* ---- 改动清单 ---- */
+function renderChanges(){
+  const box = $('tab-changes');
+  const all = [];
+  for(const it of S.changes.values()) all.push(it);
+  for(const s of S.subs.values()) for(const it of s.changes.values()) all.push(it);
+  $('chgCount').textContent = all.length;
+  box.innerHTML = '';
+  if(!all.length){
+    const c = el('div','card');
+    c.appendChild(el('h3', null, '尚未修改任何字段'));
+    c.appendChild(el('div','hint','在「常用数值」「🎒 库存」或「全部字段」（含内嵌 JSON）里改值后，这里会列出全部改动。导出前请先备份原文件。'));
+    box.appendChild(c); return;
+  }
+  const c = el('div','card');
+  c.appendChild(el('h3', null, `共 ${all.length} 处改动`));
+  for(const it of all){
+    const node = it.node, orig = node.v;
+    const r = el('div','chg-row');
+    r.appendChild(el('span','p', searchPath(node)));
+    r.appendChild(el('span','from', '原 ' + (node.t === 'bool' ? (orig?'是':'否') : orig)));
+    r.appendChild(el('span','to', '→ ' + (node.t === 'bool' ? (it.value?'是':'否') : it.value)));
+    const u = el('button', null, '撤销'); u.onclick = () => { undo(node); renderChanges(); };
+    r.appendChild(u);
+    c.appendChild(r);
+  }
+  box.appendChild(c);
+}
+
+/* ---- 导出 ---- */
+function doExport(){
+  if(!S.text) return;
+  const changes = new Map(S.changes);
+  let subCount = 0, subFields = 0;
+  for(const s of S.subs.values()){
+    if(!s.changes.size) continue;
+    const r = buildSub(s);                                    // 递归处理内层（含更深层内嵌 JSON）
+    changes.set(s.node, {node: s.node, value: r.text, literal: r.literal});
+    subCount += s.changes.size; subFields++;
+  }
+  if(!changes.size) return;
+  const out = buildOutput(S.text, changes);
+  const chk = verifyOutput(out, changes);                     // 外层逐项回读比对
+  let subBad = [];
+  if(subCount){
+    const r = parseLoose(out); annotate(r.root, []);
+    for(const s of S.subs.values()){
+      if(!s.changes.size) continue;
+      try {
+        const o = lookupBySegs(r.root, s.node.segs);
+        JSON.parse(o.v);                                      // 内层仍是合法 JSON
+        const ip = parseLoose(o.v); annotate(ip.root, [s.label]);
+        for(const it of s.changes.values()){
+          const n = lookupBySegs(ip.root, it.node.segs);
+          const got = n && n.t === 'num' ? Number(n.v) : (n ? n.v : null);
+          const want = it.node.t === 'num' ? Number(it.value) : it.value;
+          if(got !== want) subBad.push(friendlyPath(it.node.segs));
+        }
+      } catch(e){ subBad.push(s.owner + ' 内层 JSON 校验失败: ' + e.message); }
+    }
+  }
+  const blob = new Blob([(S.hasBOM ? '\uFEFF' : '') + out], {type:'application/json'});
+  const a = el('a'); a.href = URL.createObjectURL(blob);
+  a.download = S.name.replace(/\.[^.]+$/, '') + '.es3';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  setStatus(`已导出 <b>${a.download}</b>　普通字段 ${changes.size - subFields} 处 + 内嵌 JSON ${subCount} 处改动，回读自检通过 ${chk.ok} 处` +
+            (chk.bad.length ? `　<span style="color:var(--bad)">⚠ 外层未通过：${chk.bad.join('；')}</span>`
+                            : '　<span style="color:var(--ok)">✔ 外层校验通过</span>') +
+            (subCount ? (subBad.length ? `　<span style="color:var(--bad)">⚠ 内嵌 JSON 未通过：${subBad.join('；')}</span>`
+                                       : '　<span style="color:var(--ok)">✔ 内嵌 JSON 校验通过</span>') : '') +
+            `　文件 ${out.length} 字符（原 ${S.text.length}）。请先备份原存档再覆盖。`);
+}
+
+/* ---- 事件与初始化 ---- */
+function switchTab(name){
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  document.querySelectorAll('main section').forEach(s => s.style.display = 'none');
+  const sec = $('tab-' + name); if(sec) sec.style.display = 'block';
+}
+document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => {
+  switchTab(b.dataset.tab);
+  if(b.dataset.tab === 'tree') renderTree();
+  if(b.dataset.tab === 'inv') renderInv();
+  if(b.dataset.tab === 'changes') renderChanges();
+});
+$('file').onchange = e => { const f = e.target.files[0]; if(f) readFile(f); };
+$('exportBtn').onclick = doExport;
+$('resetBtn').onclick = () => {
+  for(const node of [...S.changes.keys()]){ S.changes.delete(node); refreshControls(node); }
+  for(const s of S.subs.values()){
+    for(const node of [...s.changes.keys()]){ s.changes.delete(node); refreshControls(node); }
+  }
+  if(S.invs && S.invs.has($('invPick').value)) renderInv();
+  updateChgUI();
+  setStatus('已还原全部改动');
+};
+/* 🎒 库存 */
+$('invPick').onchange = () => renderInv();
+$('invGroup').onchange = () => renderInv();
+let invTmr = null;
+$('invSearch').oninput = () => { clearTimeout(invTmr); invTmr = setTimeout(() => renderInv(true), 200); };
+$('invClear').onclick = () => { $('invSearch').value = ''; renderInv(); };
+$('invSelNone').onclick = () => { S.sel.clear(); renderInv(true); };
+$('invCollapse').onclick = () => {
+  const ctx = S.invs.get($('invPick').value);
+  if(ctx) ctx.open = new Set();
+  renderInv(true);
+  setStatus('已收起全部分组（点组名或 ▸ 展开某一组）');
+};
+$('invExpand').onclick = () => {
+  const ctx = S.invs.get($('invPick').value);
+  const mode = $('invGroup').value;
+  if(ctx && mode !== 'none') ctx.open = new Set((ctx.shown || []).map(r => groupKeyOf(r, mode)));
+  renderInv(true);
+};
+$('clearSearch').onclick = () => { $('search').value = ''; doSearch(''); };
+let tmr = null;
+$('search').oninput = e => { clearTimeout(tmr); tmr = setTimeout(() => doSearch(e.target.value), 180); };
+
+async function readFile(f){
+  const buf = await f.arrayBuffer();
+  let text = new TextDecoder('utf-8').decode(buf);
+  const hasBOM = text.charCodeAt(0) === 0xFEFF;
+  if(hasBOM) text = text.slice(1);
+  try {
+    load(text, f.name, hasBOM, buf.byteLength);
+  } catch(err){
+    setStatus('<span style="color:var(--bad)">解析失败：' + err.message + '</span>（若这是游戏的 .es3 存档，请把本提示反馈给我）');
+  }
+}
+['dragenter','dragover'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.add('hot'); }));
+['dragleave','drop'].forEach(ev => $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.remove('hot'); }));
+$('drop').addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if(f) readFile(f); });
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => e.preventDefault());
+
+/* =====================================================================
+   5. 「上次的存档」缓存：IndexedDB 存原文 + 未导出的改动，下次打开自动恢复
+   ===================================================================== */
+const IDB_NAME = 'es3-save-mod', IDB_KEY = 'lastSave';
+function idbOpen(){
+  return new Promise((res, rej) => {
+    const rq = indexedDB.open(IDB_NAME, 1);
+    rq.onupgradeneeded = () => { if(!rq.result.objectStoreNames.contains('kv')) rq.result.createObjectStore('kv'); };
+    rq.onsuccess = () => res(rq.result);
+    rq.onerror = () => rej(rq.error);
+  });
+}
+function idbDo(mode, fn){
+  return idbOpen().then(db => new Promise((res, rej) => {
+    const tx = db.transaction('kv', mode);
+    const rq = fn(tx.objectStore('kv'));
+    tx.oncomplete = () => res(rq && rq.result);
+    tx.onerror = () => rej(tx.error);
+    tx.onabort = () => rej(tx.error);
+  }));
+}
+const idbPut = v => idbDo('readwrite', st => st.put(v, IDB_KEY));
+const idbGet = () => idbDo('readonly', st => st.get(IDB_KEY));
+const idbDel = () => idbDo('readwrite', st => st.delete(IDB_KEY));
+
+function schedulePersist(){ clearTimeout(S.persistTimer); S.persistTimer = setTimeout(persistNow, 1200); }
+async function persistNow(){
+  if(!S.text) return;
+  try {
+    await idbPut({
+      name: S.name, hasBOM: S.hasBOM, text: S.text, size: S.byteSize, ts: Date.now(),
+      changes: [...S.changes.values()].map(it => ({ segs: it.node.segs, v: it.value })),
+      subs: [...S.subs.values()].filter(s => s.changes.size).map(s => ({
+        segs: s.node.segs,
+        changes: [...s.changes.values()].map(it => ({ segs: it.node.segs, v: it.value })),
+      })),
+    });
+  } catch(e){ /* 缓存失败不影响正常使用 */ }
+}
+/* 恢复上次进度：原文 + 改动（外层字段 + 内嵌 JSON 内的改动） */
+async function restoreLast(){
+  let p = null;
+  try { p = await idbGet(); } catch(e){ return false; }
+  if(!p || !p.text) return false;
+  try {
+    load(p.text, p.name || '上次的存档.es3', !!p.hasBOM, p.size || p.text.length);
+    let n = 0;
+    for(const c of (p.changes || [])){
+      const node = lookupBySegs(S.root, c.segs);
+      if(node){ node._map = S.changes; commit(node, c.v, null); n++; }
+    }
+    for(const sc of (p.subs || [])){
+      const sub = ensureSub(lookupBySegs(S.root, sc.segs));
+      if(!sub) continue;
+      for(const c of sc.changes){
+        const node = lookupBySegs(sub.root, c.segs);
+        if(node){ node._map = sub.changes; commit(node, c.v, null); n++; }
+      }
+    }
+    S.restored = { ts: p.ts, changes: n };
+    return true;
+  } catch(e){ return false; }
+}
+$('forgetBtn').onclick = async () => {
+  try { await idbDel(); setStatus('已清除浏览器里缓存的「上次存档」记录（磁盘上的文件不受影响）'); }
+  catch(e){ setStatus('清除失败：' + e.message); }
+};
+(async () => {
+  if(S.text) return;                       // 已经手动加载过就不覆盖
+  const ok = await restoreLast();
+  if(!ok) return;
+  const t = S.restored;
+  setStatus(`↺ 已自动恢复上次的存档 <b>${S.name}</b>（${new Date(t.ts).toLocaleString('zh-CN')}）` +
+            (t.changes ? `，其中含尚未导出的 <b>${t.changes}</b> 处改动` : '') +
+            `　要换文件请点左上角「选择存档」`);
+})();
+</script>
+</body>
+</html>

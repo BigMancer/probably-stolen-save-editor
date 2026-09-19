@@ -1,0 +1,20 @@
+# ---- 游戏存档：个人数据，不入库 ----
+*.es3
+*.ES3
+*.es3.bak
+
+# ---- 测试 / 导出产生的临时文件 ----
+_out_*.es3
+_*_out.es3
+_patch_test.es3
+_*.png
+_screenshot*.png
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+*.swp
+*~
+Thumbs.db
+desktop.ini
+.DS_Store
