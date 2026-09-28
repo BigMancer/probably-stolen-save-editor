@@ -113,4 +113,5 @@ layout/geometry checks. Scripts live outside the repo (in a temp folder); the ch
 
 ## License
 
-Not specified — personal use. The game and its assets belong to Questing Goose Studio.
+MIT — see [LICENSE](LICENSE). The game **Probably Stolen** and its assets belong to Questing Goose
+Studio; this editor is an unofficial community tool and ships no game data.

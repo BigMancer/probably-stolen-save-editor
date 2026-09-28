@@ -106,4 +106,5 @@
 
 ## 许可
 
-未指定，个人使用。游戏本体与素材版权归 Questing Goose Studio 所有。
+MIT，见 [LICENSE](LICENSE)。游戏 **Probably Stolen**（深空当铺）本体与素材版权归 Questing Goose
+Studio 所有；本工具是第三方非官方修改器，不包含任何游戏数据。
