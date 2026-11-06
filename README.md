@@ -32,8 +32,8 @@ timers, playtime. Labelled inputs on one page.
 | Group | by type, owning container, item name or identifier — groups start **collapsed**, with `全部收起` / `全部展开` |
 | Batch | tick rows (or **选中本组** / header check-all), then edit a property on any selected item — the same tag + field is written to every other selected item. Type mismatches are skipped, not corrupted. Toggle `批量同步` off to edit one item only. |
 
-**全部字段 · All fields** — full lazy-loaded tree of the entire save (8,122 fields in the reference
-save). Embedded JSON strings (`mainInvJSON`, `soldInvJSON`, …) are expanded as sub-structures, so
+**全部字段 · All fields** — full lazy-loaded tree of the entire save (15,497 fields in the current save;
+the 0.1.0-era save had 8,122). Embedded JSON strings (`mainInvJSON`, `soldInvJSON`, …) are expanded as sub-structures, so
 search goes *inside* the inventory: searching `弹药` finds `playerStore.mainInvJSON ▸ saveItems[43].name`.
 Search results are flat, editable rows.
 
@@ -72,7 +72,7 @@ A `.es3` save is **not** standard JSON. In the reference save:
 
 * 60 dictionary keys are unquoted numbers — `{...,8376:{...},-103:{...},...}`
 * 20 escape sequences are invalid JSON — `\“` / `\”`
-* the whole inventory is a **JSON string inside JSON** (`mainInvJSON`, 1.19 M characters, 287 items)
+* the whole inventory is a **JSON string inside JSON** (`mainInvJSON`, 2.34 M characters, 437 items)
 * newer game builds write the file with indentation and CRLF line endings
 
 So the editor:
@@ -82,7 +82,7 @@ So the editor:
 2. on export, replaces **only the byte ranges of the values you actually changed** — everything else,
    including original escapes like `\/`, indentation and line endings, is copied verbatim;
 3. for edits inside an embedded JSON string, splices the change into the outer string literal with
-   escape-aware patching, so the rest of the 1.19 M-character string is untouched;
+   escape-aware patching, so the rest of the 2.34 M-character string is untouched;
 4. re-parses the result and re-reads every changed path before downloading — the status bar reports
    `✔ 外层校验通过 / ✔ 内嵌 JSON 校验通过` (outer + embedded JSON checks) or names what failed.
 
@@ -108,6 +108,10 @@ layout/geometry checks. Scripts live outside the repo (in a temp folder); the ch
 (human or agent) continuing this project.
 
 ## Version
+
+**0.2.0** — adapted to the 2026-11 game update: plant/seed/DNA, firearms and weapon mods, hoppers,
+printers and chemical machines; 140 new tag translations and 11 new item types. Verified against a
+437-item save (no-op export still byte-identical).
 
 **0.1.0** — first tagged release.
 

@@ -41,11 +41,12 @@
 | 字段规模 | 8,122 个节点（`playerStore` 144 个字段） |
 | 新版存档差异 | 游戏新版本写成**带缩进 + CRLF** 的形式（`\r\n` + 空格缩进），解析器两种都要吃 |
 | 旧副本 / 新版 | 1,720,561 B（单行）/ 1,827,432 B（缩进版） |
+| 2026-11 游戏更新后 | 3,211,719 B / 3,162,593 字符，**单行**（无缩进、无 CRLF），裸数字键 55、非法转义 80、15,497 节点 |
 
 **库存是「JSON 里的 JSON」**（这是最要紧的部分）：
 
-* 字段：`playerStore.mainInvJSON`（当前库存，解码后 1,192,336 字符）、`playerStore.soldInvJSON`
-  （已售出，≈76 KB / 22 件）
+* 字段：`playerStore.mainInvJSON`（当前库存；9 月版解码后 1,192,336 字符 / 287 件，2026-11 更新后
+  **2,343,066 字符 / 437 件**）、`playerStore.soldInvJSON`（已售出；9 月版 ≈76 KB / 22 件，新版 ≈59 KB / 14 件）
 * 内层结构：`{"saveItems":[ ...物品... ]}`，每件物品约 19 个字段：
   `identifier, unitCount, uuid, itemShape, itemModifiedShape, itemType, name, shortDescription,
   flavorText, uniqueId, unitBaseValue, unitValue, lateUnitValue, backupUnitValue, spriteAtlasPath,
@@ -53,7 +54,7 @@
 * `childItems` 是 **uuid 数字数组**（引用同一数组里其它物品的 `uuid`），不是嵌套对象；有 `childItems`
   的就是容器（如 `storage_bay` / `smuggler_bay_mod` / `sec_box`），`itemTypes` 里带 `STORAGE`
 * 物品名 `name` 是中文；`identifier` 是英文 id
-* **`unitCount` 在这份存档里 287 件全是 1** —— 游戏没有堆叠概念，数量列意义有限
+* **`unitCount` 全是 1**（9 月版 287 件、2026-11 版 437 件都是）—— 游戏没有堆叠概念，数量列意义有限
 * 属性在 `_keys`（tag 名数组）与 `_values`（同长度对象数组）里，**两者必须一一对应**；
   `_values[i]` 的字段：`<identifier>k__BackingField`（tag 名）、`<identifierName>k__BackingField`、
   `valueEnabled`、`internalValueString`、`valueInt`、`valueFloat`、`valueLong`、`valueDouble`、`valueBool`
@@ -63,8 +64,9 @@
 * `CUSTOM_NAME_TAG` 的 `internalValueString` = 玩家给物品起的自定义名（参考存档里 5 件）
 * `BONUS_PERCENTAGE_PERFORMANCE_INT` / `_EFFICIENCY_INT` / `_QUALITY_INT` = 模组性能/效率/质量加成，
   值在 **`valueInt`**（45 件物品有）；同名 `TEMP_PERCENTAGE_*` 是当前生效值，通常与 BONUS 相同
-* 词典：`TAG_CN` / `TYPE_CN`（HTML 内），参考存档里出现的 236 种标签 + 33 种 itemTypes 已全覆盖
-  （共 269 条）。**遇到未翻译的标签，只需往 `TAG_CN` 加一行**，UI 会自动用上；缺失时 UI 显示英文原名
+* 词典：`TAG_CN` / `TYPE_CN`（HTML 内）。9 月版 236 种 tag + 33 种 itemTypes（269 条）已覆盖；
+  2026-11 更新后新增植物/种子/DNA、枪械/配件、漏斗/打印机等 140 个 tag + 11 个 itemTypes，
+  现为 **TAG_CN 376 条 / TYPE_CN 44 条，新版存档 332 tags + 38 itemTypes 零未翻译**。遇到未翻译的标签，只需往 `TAG_CN` 加一行，UI 会自动用上；缺失时 UI 显示英文原名
   并标「未翻译」，这是有意设计，不要改成硬编码中文
 
 ## 3. 架构（单文件内的分层）
@@ -145,4 +147,5 @@ puppeteer.launch({ executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Applic
 
 ## 8. 版本
 
+`0.2.0` —— 适配 2026-11 游戏更新（新物品类型、140 个新 tag 的中文对照；新存档已端到端验证）。
 `0.1.0` —— 首个打 tag 的版本。
